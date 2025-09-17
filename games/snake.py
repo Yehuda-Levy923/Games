@@ -57,7 +57,7 @@ def start_screen():
         high_text = font.render(f"Current High Score: {high_score}", True, GOLD)
 
         screen.blit(title_text, (WIDTH // 2 - 275, HEIGHT // 2 - 200))
-        screen.blit(high_text, (WIDTH // 2 - 150, HEIGHT // 2 - 60))
+        screen.blit(high_text, (WIDTH // 2 - 135, HEIGHT // 2 - 60))
         screen.blit(prompt_text, (WIDTH // 2 - 180, HEIGHT // 2))
 
         pygame.display.flip()
@@ -169,7 +169,10 @@ def game_over_screen(score):
 
         screen.blit(game_over_text, (WIDTH // 2 - 225, HEIGHT // 2 - 150))
         screen.blit(score_text, (WIDTH // 2 - 80, HEIGHT // 2 - 20))
-        screen.blit(high_text, (WIDTH // 2 - 80, HEIGHT // 2 + 10))
+        if new_high_score:
+            screen.blit(high_text, (WIDTH // 2 - 115, HEIGHT // 2 + 10))
+        else:
+            screen.blit(high_text, (WIDTH // 2 - 80, HEIGHT // 2 + 10))
         screen.blit(restart_text, (WIDTH // 2 - 180, HEIGHT // 2 + 50))
 
         pygame.display.flip()
