@@ -1,4 +1,5 @@
 import pygame, sys, random, math
+from highscore_manager import HighScoreManager  # Import our high score manager
 
 # Initialize
 pygame.init()
@@ -17,13 +18,17 @@ IMMUNE_COLOR = GREEN
 BAR_BG = (80, 80, 80)
 BAR_FILL_POWER = (50, 200, 255)
 BAR_FILL_SHIELD = (0, 255, 100)
+GOLD = (255, 215, 0)  # For new high score celebration
 
 # Fonts
 font = pygame.font.SysFont("Times New Roman", 28)
 big_font = pygame.font.SysFont("Times New Roman", 56)
 
 clock = pygame.time.Clock()
-high_score = 0
+
+# Initialize high score manager
+hsm = HighScoreManager()
+high_score = hsm.get_high_score("asteroid")
 
 center = (WIDTH // 2, HEIGHT // 2)
 
@@ -34,8 +39,10 @@ def start_screen():
         screen.fill(BLACK)
         title = big_font.render("Welcome to Asteroid Dodger!", True, GREEN)
         prompt = font.render("Press SPACE to Start or Q to Quit", True, WHITE)
+        high_text = font.render(f"Current High Score: {high_score}", True, GOLD)
 
-        screen.blit(title, (WIDTH // 2 - 350, HEIGHT // 2 - 100))
+        screen.blit(title, (WIDTH // 2 - 350, HEIGHT // 2 - 120))
+        screen.blit(high_text, (WIDTH // 2 - 150, HEIGHT // 2 - 60))
         screen.blit(prompt, (WIDTH // 2 - 200, HEIGHT // 2))
 
         pygame.display.flip()
@@ -52,20 +59,34 @@ def start_screen():
 
 def game_over_screen(score):
     global high_score
-    if score > high_score:
-        high_score = score
+
+    # Check for new high score and save it
+    new_high_score = hsm.update_high_score("asteroid", score)
+    if new_high_score:
+        high_score = score  # Update local variable
 
     while True:
         screen.fill(BLACK)
         over = big_font.render("GAME OVER!", True, AST_COLOR)
         score_text = font.render(f"Final Score: {score}", True, WHITE)
-        high_text = font.render(f"High Score: {high_score}", True, WHITE)
+
+        # Show different message for new high score
+        if new_high_score:
+            high_text = font.render(f"NEW HIGH SCORE: {high_score}!", True, GOLD)
+            celebration_text = font.render("Outstanding Performance!", True, GOLD)
+            screen.blit(celebration_text, (WIDTH // 2 - 130, HEIGHT // 2 - 50))
+        else:
+            high_text = font.render(f"High Score: {high_score}", True, WHITE)
+
         restart = font.render("Press SPACE to Restart or Q to Quit", True, WHITE)
 
-        screen.blit(over, (WIDTH // 2 - 130, HEIGHT // 2 - 100))
-        screen.blit(score_text, (WIDTH // 2 - 80, HEIGHT // 2 - 20))
-        screen.blit(high_text, (WIDTH // 2 - 80, HEIGHT // 2 + 20))
-        screen.blit(restart, (WIDTH // 2 - 200, HEIGHT // 2 + 60))
+        screen.blit(over, (WIDTH // 2 - 170, HEIGHT // 2 - 150))
+        screen.blit(score_text, (WIDTH // 2 - 90, HEIGHT // 2 - 20))
+        if new_high_score:
+            screen.blit(high_text, (WIDTH // 2 - 130, HEIGHT // 2 + 20))
+        else:
+            screen.blit(high_text, (WIDTH // 2 - 90, HEIGHT // 2 + 20))
+        screen.blit(restart, (WIDTH // 2 - 190, HEIGHT // 2 + 60))
 
         pygame.display.flip()
 
@@ -157,7 +178,8 @@ def game_loop():
         # Update asteroids
         new_asteroids = []
         for a in asteroids:
-            a[0] += a[2]; a[1] += a[3]
+            a[0] += a[2];
+            a[1] += a[3]
             if -20 <= a[0] <= WIDTH + 20 and -20 <= a[1] <= HEIGHT + 20:
                 new_asteroids.append(a)
                 pygame.draw.circle(screen, AST_COLOR, (int(a[0]), int(a[1])), a[4])
@@ -184,7 +206,7 @@ def game_loop():
                 pygame.draw.rect(screen, BAR_BG, (x_pos, y_pos, bar_w, bar_h))
                 fill = int(bar_w * (1 - elapsed / powerup_duration))
                 pygame.draw.rect(screen, BAR_FILL_POWER, (x_pos, y_pos, fill, bar_h))
-                num_text = font.render(str(max(1, math.ceil((powerup_duration - elapsed)/1000))), True, WHITE)
+                num_text = font.render(str(max(1, math.ceil((powerup_duration - elapsed) / 1000))), True, WHITE)
                 screen.blit(num_text, (x_pos + bar_w // 2 - 10, y_pos - 5))
 
                 # Collect
@@ -213,7 +235,7 @@ def game_loop():
         # Trail
         trail.append((sat_x, sat_y))
         if len(trail) > max_trail: trail.pop(0)
-        for pos in trail: pygame.draw.circle(screen, (0,150,0), (int(pos[0]),int(pos[1])),6)
+        for pos in trail: pygame.draw.circle(screen, (0, 150, 0), (int(pos[0]), int(pos[1])), 6)
 
         # Satellite
         if immune_time > 0: pygame.draw.circle(screen, IMMUNE_COLOR, (int(sat_x), int(sat_y)), 14, 2)
@@ -225,7 +247,8 @@ def game_loop():
         # Score
         score_text = font.render(f"Score: {score}", True, WHITE)
         high_text = font.render(f"High Score: {high_score}", True, WHITE)
-        screen.blit(score_text, (10,10)); screen.blit(high_text, (10,40))
+        screen.blit(score_text, (10, 10));
+        screen.blit(high_text, (10, 40))
 
         pygame.display.flip()
         clock.tick(60)
@@ -237,7 +260,8 @@ while True:
     if choice == "QUIT": break
 
     result = game_loop()
-    if result == "QUIT": break
+    if result == "QUIT":
+        break
     elif isinstance(result, tuple) and result[0] == "GAME_OVER":
         score = result[1]
         choice = game_over_screen(score)
