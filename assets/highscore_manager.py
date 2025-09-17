@@ -1,9 +1,10 @@
 import json
 import os
 
-
 class HighScoreManager:
-    def __init__(self, filename="highscores.json"):
+    def __init__(self, filename="assets/highscores.json"):
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
         self.filename = filename
         self.scores = self.load_scores()
 

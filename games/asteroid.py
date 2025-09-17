@@ -1,5 +1,5 @@
-import pygame, sys, random, math
-from highscore_manager import HighScoreManager  # Import our high score manager
+import pygame, random, math
+from assets.highscore_manager import HighScoreManager  # Import our high score manager
 
 # Initialize
 pygame.init()

@@ -1,6 +1,6 @@
 import pygame
 import random
-from highscore_manager import HighScoreManager  # Import our high score manager
+from assets.highscore_manager import HighScoreManager  # Import our high score manager
 
 # Initialize pygame
 pygame.init()
