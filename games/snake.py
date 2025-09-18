@@ -1,13 +1,21 @@
 import pygame
 import random
-from assets.highscore_manager import HighScoreManager  # Import our high score manager
+import os
+from assets.highscore_manager import HighScoreManager
 
 # Initialize pygame
 pygame.init()
 
+# Paths
+ASSETS_PATH = "assets"
+
 # Screen settings
 WIDTH, HEIGHT = 800, 600
 CELL_SIZE = 20
+GRID_WIDTH = WIDTH // CELL_SIZE
+GRID_HEIGHT = HEIGHT // CELL_SIZE
+PLAYABLE_X = range(1, GRID_WIDTH - 1)
+PLAYABLE_Y = range(1, GRID_HEIGHT - 1)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Snake Game")
 
@@ -16,7 +24,8 @@ BLACK = (0, 0, 0)
 GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
-GOLD = (255, 215, 0)  # For new high score celebration
+GOLD = (255, 215, 0)
+BROWN =  (137 ,81 ,41)
 
 # Fonts and clock
 clock = pygame.time.Clock()
@@ -28,6 +37,21 @@ big_font = pygame.font.SysFont("Times New Roman", 72)
 hsm = HighScoreManager()
 high_score = hsm.get_high_score("snake")
 
+# Drawing the game border on the board
+def draw_border():
+    for x in range(GRID_WIDTH):
+        for y in range(GRID_HEIGHT):
+            if x == 0 or x == GRID_WIDTH - 1 or y == 0 or y == GRID_HEIGHT - 1:
+                pygame.draw.rect(screen, BROWN, (x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE))
+
+# Drawing the game border bricks on the board
+def draw_grid():
+    # Vertical lines
+    for x in range(0, WIDTH, CELL_SIZE):
+        pygame.draw.line(screen, BLACK, (x, 0), (x, HEIGHT))
+    # Horizontal lines
+    for y in range(0, HEIGHT, CELL_SIZE):
+        pygame.draw.line(screen, BLACK, (0, y), (WIDTH, y))
 
 # Drawing the snake on the board
 def draw_snake(snake):
@@ -47,11 +71,29 @@ def draw_score(score):
     screen.blit(score_text, (10, 10))
     screen.blit(high_text, (10, 40))
 
+# Automatically load the PNG in assets folder
+def load_icon():
+    icons = {}
+    for file in os.listdir(ASSETS_PATH):
+        if file.endswith(".png"):
+            name = file.split("_icon")[0]
+            img = pygame.image.load(os.path.join(ASSETS_PATH, file))
+            img = pygame.transform.scale(img, (500, 500))
+            icons[name.lower()] = img
+
+    return icons
+
+icons = load_icon()
+icon = icons["snake"].convert_alpha()
+icon.set_alpha(128)
 
 # Start screen
 def start_screen():
     while True:
         screen.fill(BLACK)
+        icon_rect = icon.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(icon, icon_rect)
+
         title_text = big_font.render("Welcome to Snake!", True, GREEN)
         prompt_text = font.render("Press SPACE to Start or Q to Quit", True, WHITE)
         high_text = font.render(f"Current High Score: {high_score}", True, GOLD)
@@ -79,25 +121,27 @@ def game_loop():
     direction = "RIGHT"
 
     # Food setup
-    food_x = random.randrange(0, WIDTH, CELL_SIZE)
-    food_y = random.randrange(0, HEIGHT, CELL_SIZE)
+    food_x = random.choice(PLAYABLE_X) * CELL_SIZE
+    food_y = random.choice(PLAYABLE_Y) * CELL_SIZE
 
     running = True
     while running:
         screen.fill(BLACK)
+        draw_border()
+        draw_grid()
 
         # Handle input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "QUIT"
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP and direction != "DOWN":
+                if (event.key == pygame.K_UP or event.key == pygame.K_w) and direction != "DOWN":
                     direction = "UP"
-                elif event.key == pygame.K_DOWN and direction != "UP":
+                elif (event.key == pygame.K_DOWN or event.key == pygame.K_s) and direction != "UP":
                     direction = "DOWN"
-                elif event.key == pygame.K_LEFT and direction != "RIGHT":
+                elif (event.key == pygame.K_LEFT or event.key == pygame.K_a) and direction != "RIGHT":
                     direction = "LEFT"
-                elif event.key == pygame.K_RIGHT and direction != "LEFT":
+                elif (event.key == pygame.K_RIGHT or event.key == pygame.K_d) and direction != "LEFT":
                     direction = "RIGHT"
 
         # Move snake
@@ -114,8 +158,8 @@ def game_loop():
         new_head = (head_x, head_y)
 
         # Check collisions
-        if (head_x < 0 or head_x >= WIDTH or
-                head_y < 0 or head_y >= HEIGHT or
+        if (head_x // CELL_SIZE not in PLAYABLE_X or
+                head_y // CELL_SIZE not in PLAYABLE_Y or
                 new_head in snake):
             return "GAME_OVER", len(snake) - 3
 
@@ -123,8 +167,8 @@ def game_loop():
         if head_x == food_x and head_y == food_y:
             snake.insert(0, new_head)
             while True:
-                food_x = random.randrange(0, WIDTH, CELL_SIZE)
-                food_y = random.randrange(0, HEIGHT, CELL_SIZE)
+                food_x = random.choice(PLAYABLE_X) * CELL_SIZE
+                food_y = random.choice(PLAYABLE_Y) * CELL_SIZE
                 if (food_x, food_y) not in snake:
                     break
         else:
@@ -154,6 +198,8 @@ def game_over_screen(score):
 
     while True:
         screen.fill(BLACK)
+        icon_rect = icon.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(icon, icon_rect)
         game_over_text = big_font.render("GAME OVER!", True, RED)
         score_text = font.render(f"Final Score: {score}", True, WHITE)
 

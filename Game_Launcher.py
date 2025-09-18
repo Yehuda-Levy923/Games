@@ -38,25 +38,12 @@ GAMES_PATH = "games"
 # Automatically load all PNGs in assets folder
 def load_icons():
     icons = {}
-    # If assets folder doesn't exist, create placeholder icons
-    if not os.path.exists(ASSETS_PATH):
-        # Create simple colored rectangles as placeholders
-        snake_icon = pygame.Surface((180, 180))
-        snake_icon.fill(GREEN)
-        pygame.draw.rect(snake_icon, (0, 200, 0), (20, 20, 140, 140))
-        icons["snake"] = snake_icon
-
-        asteroid_icon = pygame.Surface((180, 180))
-        asteroid_icon.fill(GRAY)
-        pygame.draw.circle(asteroid_icon, (200, 50, 50), (90, 90), 70)
-        icons["asteroid"] = asteroid_icon
-    else:
-        for file in os.listdir(ASSETS_PATH):
-            if file.endswith(".png"):
-                name = file.split("_icon")[0]
-                img = pygame.image.load(os.path.join(ASSETS_PATH, file))
-                img = pygame.transform.scale(img, (180, 180))
-                icons[name.lower()] = img
+    for file in os.listdir(ASSETS_PATH):
+        if file.endswith(".png"):
+            name = file.split("_icon")[0]
+            img = pygame.image.load(os.path.join(ASSETS_PATH, file))
+            img = pygame.transform.scale(img, (180, 180))
+            icons[name.lower()] = img
 
     return icons
 
@@ -98,7 +85,7 @@ def draw_menu():
         color = BLUE if i == selected else WHITE
 
         # Position calculations
-        x_pos = 200 + (i * 400)  # Space games horizontally
+        x_pos = 200 + (i * 400)
         y_pos = 300
 
         # Draw icon

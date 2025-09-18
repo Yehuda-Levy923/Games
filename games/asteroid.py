@@ -1,11 +1,15 @@
+import os
 import pygame, random, math
-from assets.highscore_manager import HighScoreManager  # Import our high score manager
+from assets.highscore_manager import HighScoreManager
 
 # Initialize
 pygame.init()
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Asteroid Dodger")
+
+# Paths
+ASSETS_PATH = "assets"
 
 # Colours
 BLACK = (0, 0, 0)
@@ -18,7 +22,8 @@ IMMUNE_COLOR = GREEN
 BAR_BG = (80, 80, 80)
 BAR_FILL_POWER = (50, 200, 255)
 BAR_FILL_SHIELD = (0, 255, 100)
-GOLD = (255, 215, 0)  # For new high score celebration
+GOLD = (255, 215, 0)
+GRAY = (50, 50, 50)
 
 # Fonts
 font = pygame.font.SysFont("Times New Roman", 28)
@@ -32,11 +37,42 @@ high_score = hsm.get_high_score("asteroid")
 
 center = (WIDTH // 2, HEIGHT // 2)
 
+background_asteroids = [[random.randint(0, WIDTH), random.randint(0, HEIGHT), random.randint(1, 3)] for _ in range(80)]
+
+
+# ---------------- Background ---------------- #
+def draw_background(speed):
+    screen.fill(BLACK)
+    for asteroid in background_asteroids:
+        pygame.draw.circle(screen, GRAY, (int(asteroid[0]), int(asteroid[1])), asteroid[2])
+        asteroid[0] -= speed
+        if asteroid[0] < 0:
+            asteroid[0] = WIDTH
+            asteroid[1] = random.randint(0, HEIGHT)
+
+# Automatically load the PNG in assets folder
+def load_icon():
+    icons = {}
+    for file in os.listdir(ASSETS_PATH):
+        if file.endswith(".png"):
+            name = file.split("_icon")[0]
+            img = pygame.image.load(os.path.join(ASSETS_PATH, file))
+            img = pygame.transform.scale(img, (500, 500))
+            icons[name.lower()] = img
+
+    return icons
+
+icons = load_icon()
+icon = icons["asteroid"].convert_alpha()
+icon.set_alpha(128)
 
 # ---------------- Screens ---------------- #
 def start_screen():
     while True:
-        screen.fill(BLACK)
+        draw_background(0.1)
+        icon_rect = icon.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(icon, icon_rect)
+
         title = big_font.render("Welcome to Asteroid Dodger!", True, GREEN)
         prompt = font.render("Press SPACE to Start or Q to Quit", True, WHITE)
         high_text = font.render(f"Current High Score: {high_score}", True, GOLD)
@@ -66,7 +102,10 @@ def game_over_screen(score):
         high_score = score  # Update local variable
 
     while True:
-        screen.fill(BLACK)
+        draw_background(0.1)
+        icon_rect = icon.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(icon, icon_rect)
+
         over = big_font.render("GAME OVER!", True, AST_COLOR)
         score_text = font.render(f"Final Score: {score}", True, WHITE)
 
@@ -145,7 +184,7 @@ def game_loop():
 
     running = True
     while running:
-        screen.fill(BLACK)
+        draw_background(1.5)
         now = pygame.time.get_ticks()
 
         # Quit
@@ -156,10 +195,10 @@ def game_loop():
         # Movement
         keys = pygame.key.get_pressed()
         moved = False
-        if keys[pygame.K_UP]: sat_y -= sat_speed; moved = True
-        if keys[pygame.K_DOWN]: sat_y += sat_speed; moved = True
-        if keys[pygame.K_LEFT]: sat_x -= sat_speed; moved = True
-        if keys[pygame.K_RIGHT]: sat_x += sat_speed; moved = True
+        if keys[pygame.K_UP] or keys[pygame.K_w]: sat_y -= sat_speed; moved = True
+        if keys[pygame.K_DOWN] or keys[pygame.K_s]: sat_y += sat_speed; moved = True
+        if keys[pygame.K_LEFT] or keys[pygame.K_a]: sat_x -= sat_speed; moved = True
+        if keys[pygame.K_RIGHT] or keys[pygame.K_d]: sat_x += sat_speed; moved = True
 
         sat_x = max(10, min(WIDTH - 10, sat_x))
         sat_y = max(10, min(HEIGHT - 10, sat_y))
@@ -178,7 +217,7 @@ def game_loop():
         # Update asteroids
         new_asteroids = []
         for a in asteroids:
-            a[0] += a[2];
+            a[0] += a[2]
             a[1] += a[3]
             if -20 <= a[0] <= WIDTH + 20 and -20 <= a[1] <= HEIGHT + 20:
                 new_asteroids.append(a)
@@ -247,7 +286,7 @@ def game_loop():
         # Score
         score_text = font.render(f"Score: {score}", True, WHITE)
         high_text = font.render(f"High Score: {high_score}", True, WHITE)
-        screen.blit(score_text, (10, 10));
+        screen.blit(score_text, (10, 10))
         screen.blit(high_text, (10, 40))
 
         pygame.display.flip()
