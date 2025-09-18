@@ -13,7 +13,7 @@ WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Game Launcher")
 
-# Colors
+# Colours
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 BLUE = (50, 150, 255)
@@ -34,6 +34,10 @@ hsm = HighScoreManager()
 ASSETS_PATH = "assets"
 GAMES_PATH = "games"
 
+# Asteroid background
+num_asteroids = 80
+asteroids = [[random.randint(0, WIDTH), random.randint(0, HEIGHT), random.randint(1, 3)] for _ in range(num_asteroids)]
+
 
 # Automatically load all PNGs in assets folder
 def load_icons():
@@ -51,10 +55,6 @@ def load_icons():
 icons = load_icons()
 options = list(icons.keys())
 selected = 0
-
-# Asteroid background
-num_asteroids = 80
-asteroids = [[random.randint(0, WIDTH), random.randint(0, HEIGHT), random.randint(1, 3)] for _ in range(num_asteroids)]
 
 
 def draw_background():
