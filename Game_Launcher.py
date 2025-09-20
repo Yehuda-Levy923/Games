@@ -85,7 +85,7 @@ def draw_menu():
         color = BLUE if i == selected else WHITE
 
         # Position calculations
-        x_pos = 200 + (i * 400)
+        x_pos = 200 + (i * 200)
         y_pos = 300
 
         # Draw icon
