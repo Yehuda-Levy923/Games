@@ -1,20 +1,19 @@
 import pygame, random, os
 from assets.highscore_manager import HighScoreManager
 
-# Initialize
+# ---------------- Setup ---------------- #
 pygame.init()
 WIDTH, HEIGHT = 800, 600
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Pong")
 
-# Initialize high score manager
+# High-score manager
 hsm = HighScoreManager()
 high_score = hsm.get_high_score("pong")
 
 # Paths
 BASE_PATH = os.path.dirname(__file__)
-ASSETS_PATH = os.path.join(BASE_PATH, "..", "assets")
-ASSETS_PATH = os.path.abspath(ASSETS_PATH)
+ASSETS_PATH = os.path.abspath(os.path.join(BASE_PATH, "..", "assets"))
 
 # Colours
 BLACK = (0, 0, 0)
@@ -31,12 +30,14 @@ big_font = pygame.font.SysFont("Times New Roman", 56)
 
 clock = pygame.time.Clock()
 
-center = (WIDTH // 2, HEIGHT // 2)
-PADDLE_WIDTH, PADDLE_HEIGHT = 10, 100
-PLAYABLE_X = range(5,795)
-PLAYABLE_Y = range(5,595)
+# Game constants
+BORDER_WIDTH = 5
+BALL_RADIUS = 10
+PADDLE_WIDTH = 10
+PADDLE_HEIGHT = 100
 TARGET_SCORE = 3
 current_rally = 0
+longest_rally_game = 0
 
 # ---------------- Screens ---------------- #
 
@@ -88,7 +89,7 @@ def game_over_screen(winner, p1_score, p2_score, score):
     # Check for new high score and save it
     new_high_score = hsm.update_high_score("pong", score)
     if new_high_score:
-        high_score = score  # Update local variable
+        high_score = score
 
     while True:
         screen.fill(BLACK)
@@ -96,18 +97,21 @@ def game_over_screen(winner, p1_score, p2_score, score):
         game_over_text = big_font.render(f"GAME OVER!", True, RED)
         winner_text = big_font.render(f"{winner} wins!", True, YELLOW)
         score_text = font.render(f"Final Score: {p1_score} - {p2_score}", True, WHITE)
-        high_rally_text = font.render(f"Congratulations New Longest Rally: {high_score} hits", True, YELLOW)
-        rally_text = font.render(f"Longest Rally: {high_score} hits", True, WHITE)
+
+        this_game_text = font.render(f"This Game's Longest Rally: {score} hits", True, WHITE)
+        if new_high_score:
+            high_rally_text = font.render(f"Congratulations New All-Time Longest Rally: {high_score} hits", True, YELLOW)
+        else:
+            high_rally_text = font.render(f"All-Time Longest Rally: {high_score} hits", True, WHITE)
+
         restart_text = font.render("Press SPACE to Restart or Q to Quit", True, WHITE)
 
-        screen.blit(game_over_text, (WIDTH//2 - game_over_text.get_width()//2, HEIGHT//4))
-        screen.blit(winner_text, (WIDTH//2 - winner_text.get_width()/2, HEIGHT//3))
-        screen.blit(score_text, (WIDTH//2 - score_text.get_width()//2, HEIGHT//2))
-        if new_high_score:
-            screen.blit(high_rally_text, (WIDTH//2 - high_rally_text.get_width()//2, HEIGHT//2 + 40))
-        else:
-            screen.blit(rally_text, (WIDTH//2 - rally_text.get_width()//2, HEIGHT//2 + 40))
-        screen.blit(restart_text, (WIDTH//2 - restart_text.get_width()//2, HEIGHT//2 + 80))
+        screen.blit(game_over_text,(WIDTH//2 - game_over_text.get_width()//2, HEIGHT//4))
+        screen.blit(winner_text,(WIDTH//2 - winner_text.get_width()//2,    HEIGHT//3))
+        screen.blit(score_text,(WIDTH//2 - score_text.get_width()//2,     HEIGHT//2))
+        screen.blit(this_game_text,(WIDTH//2 - this_game_text.get_width()//2, HEIGHT//2 + 40))
+        screen.blit(high_rally_text,(WIDTH//2 - high_rally_text.get_width()//2,HEIGHT//2 + 80))
+        screen.blit(restart_text,(WIDTH//2 - restart_text.get_width()//2,   HEIGHT//2 + 120))
 
         pygame.display.flip()
 
@@ -124,30 +128,34 @@ def game_over_screen(winner, p1_score, p2_score, score):
 
 def draw_board():
     screen.fill(BLACK)
-    for beginning_of_line in range(0, HEIGHT, 50):
-        pygame.draw.line(screen, GRAY, (WIDTH // 2, beginning_of_line), (WIDTH // 2, beginning_of_line + 25), 5)
+    for start in range(0, HEIGHT, 50):
+        pygame.draw.line(screen, GRAY,(WIDTH // 2, start),(WIDTH // 2, start + 25), 5)
 
 def draw_border():
-    pygame.draw.rect(screen, WHITE, (0, 0, WIDTH, HEIGHT), width=5)
+    pygame.draw.rect(screen, WHITE, (0, 0, WIDTH, HEIGHT), width=BORDER_WIDTH)
 
-def draw_ball(ball_location):
-    pygame.draw.circle(screen, GREEN, ball_location, 10)
+def draw_ball(ball_x, ball_y):
+    pygame.draw.circle(screen, GREEN, (int(ball_x), int(ball_y)), BALL_RADIUS)
 
 def draw_paddle(x, y, color):
     pygame.draw.rect(screen, color, (x, y, PADDLE_WIDTH, PADDLE_HEIGHT))
 
 def game_loop():
-    global current_rally, high_score
+    global current_rally, high_score, longest_rally_game
+    longest_rally_game = 0
     paddle1_y = HEIGHT // 2 - PADDLE_HEIGHT // 2
     paddle2_y = HEIGHT // 2 - PADDLE_HEIGHT // 2
-    paddle_speed = 6
 
-    ball_x, ball_y = WIDTH // 2, HEIGHT // 2
-    ball_dx, ball_dy = 4, 4
+    ball_dx, ball_dy = 1, 1
+    base_speed = 4
     p1_score, p2_score = 0, 0
+    ball_x, ball_y = WIDTH // 2, HEIGHT // 2
 
     running = True
     while running:
+        paddle_speed = min(9, 6 + current_rally * 0.1)
+        ball_speed = min(10, base_speed + current_rally * 0.1)
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "QUIT"
@@ -162,13 +170,15 @@ def game_loop():
         if keys[pygame.K_DOWN]:
             paddle2_y += paddle_speed
 
-        paddle1_y = max(0, min(HEIGHT - PADDLE_HEIGHT, paddle1_y))
-        paddle2_y = max(0, min(HEIGHT - PADDLE_HEIGHT, paddle2_y))
+        paddle1_y = max(BORDER_WIDTH, min(HEIGHT - BORDER_WIDTH - PADDLE_HEIGHT, paddle1_y))
+        paddle2_y = max(BORDER_WIDTH, min(HEIGHT - BORDER_WIDTH - PADDLE_HEIGHT, paddle2_y))
 
-        ball_x += ball_dx
-        ball_y += ball_dy
 
-        if ball_y <= 0 or ball_y >= HEIGHT:
+        ball_x += ball_dx * ball_speed
+        ball_y += ball_dy * ball_speed
+
+
+        if ball_y - BALL_RADIUS <= BORDER_WIDTH or ball_y + BALL_RADIUS >= HEIGHT - BORDER_WIDTH:
             ball_dy *= -1
 
         paddle1_rect = pygame.Rect(20, paddle1_y, PADDLE_WIDTH, PADDLE_HEIGHT)
@@ -182,31 +192,37 @@ def game_loop():
             ball_dx = -abs(ball_dx)
             current_rally += 1
 
-        if ball_rect.left <= min(PLAYABLE_X):
+
+        if ball_rect.left <= BORDER_WIDTH:
             p2_score += 1
+            if current_rally > longest_rally_game:
+                longest_rally_game = current_rally
             if current_rally > high_score:
                 high_score = current_rally
             current_rally = 0
             if p2_score >= TARGET_SCORE:
-                return "GAME_OVER", p1_score, p2_score, "Player 2", high_score
+                return "GAME_OVER", p1_score, p2_score, "Player 2", longest_rally_game
             ball_x, ball_y = WIDTH // 2, HEIGHT // 2
             ball_dx = abs(ball_dx)
-            ball_dy = random.choice([-4, -3, -2, 2, 3, 4])
-        elif ball_rect.right >= max(PLAYABLE_X):
+            ball_dy = random.choice([-1, 1])
+
+        elif ball_rect.right >= WIDTH - BORDER_WIDTH:
             p1_score += 1
+            if current_rally > longest_rally_game:
+                longest_rally_game = current_rally
             if current_rally > high_score:
                 high_score = current_rally
             current_rally = 0
             if p1_score >= TARGET_SCORE:
-                return "GAME_OVER", p1_score, p2_score, "Player 1", high_score
+                return "GAME_OVER", p1_score, p2_score, "Player 1", longest_rally_game
             ball_x, ball_y = WIDTH // 2, HEIGHT // 2
             ball_dx = -abs(ball_dx)
-            ball_dy = random.choice([-4, -3, -2, 2, 3, 4])
+            ball_dy = random.choice([-1, 1])
 
         draw_board()
         draw_border()
-        draw_ball((ball_x, ball_y))
-        draw_paddle(20, paddle1_y, RED)
+        draw_ball(ball_x, ball_y)
+        draw_paddle(15, paddle1_y, RED)
         draw_paddle(WIDTH - 25, paddle2_y, BLUE)
 
         score_text = big_font.render(f"{p1_score} - {p2_score}", True, WHITE)
